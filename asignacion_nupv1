@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de NUP para Proyectos - Google Sheets</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 30px;
+            height: 30px;
+            margin: 0 auto 10px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+        }
+        .instructions {
+            background-color: #e9f7fe;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #2980b9;
+        }
+        .instructions ol {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generador de NUP para Proyectos</h1>
+    
+    <div class="container">
+        <div class="form-group">
+            <label for="nombreProyecto">Nombre del Proyecto:</label>
+            <input type="text" id="nombreProyecto" placeholder="Ingrese el nombre del proyecto">
+        </div>
+        <div class="form-group">
+            <label for="responsableProyecto">Responsable del Proyecto:</label>
+            <input type="text" id="responsableProyecto" placeholder="Ingrese el nombre del responsable">
+        </div>
+        <button id="generarNUP">Generar NUP y Guardar</button>
+        
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Procesando solicitud...</p>
+        </div>
+        
+        <h2>Proyectos Registrados</h2>
+        <table id="tablaProyectos">
+            <thead>
+                <tr>
+                    <th>NUP</th>
+                    <th>Nombre del Proyecto</th>
+                    <th>Responsable</th>
+                    <th>Fecha de Registro</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpoTabla">
+                <tr class="no-data">
+                    <td colspan="4">Cargando proyectos...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // IMPORTANTE: Reemplaza esta URL con la URL de tu script implementado de Google Apps Script
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbwzdBGDRV7gUqN96POHAy4KLbRe02D-1H19abksvO_X6pSIXZ7VxM8qnGdgSTMm6HSGTw/exec';
+        
+        // Función para cargar un script JSONP
+        function loadJSONP(url, callback) {
+            const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+            window[callbackName] = function(data) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                callback(data);
+            };
+
+            const script = document.createElement('script');
+            script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
+            document.body.appendChild(script);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar proyectos al iniciar
+            cargarProyectos();
+            
+            // Configurar evento del botón
+            document.getElementById('generarNUP').addEventListener('click', function() {
+                const nombreProyecto = document.getElementById('nombreProyecto').value.trim();
+                const responsableProyecto = document.getElementById('responsableProyecto').value.trim();
+                
+                if (nombreProyecto === '') {
+                    alert('Por favor, ingrese un nombre para el proyecto');
+                    return;
+                }
+                
+                if (responsableProyecto === '') {
+                    alert('Por favor, ingrese el nombre del responsable del proyecto');
+                    return;
+                }
+                
+                // Mostrar spinner de carga
+                document.getElementById('loading').style.display = 'block';
+                
+                // Construir URL para la solicitud JSONP
+                const url = `${scriptUrl}?action=agregarProyecto&nombre=${encodeURIComponent(nombreProyecto)}&responsable=${encodeURIComponent(responsableProyecto)}`;
+                
+                loadJSONP(url, function(data) {
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (data.success) {
+                        alert(`Proyecto registrado con éxito. NUP asignado: ${data.nup}`);
+                        document.getElementById('nombreProyecto').value = '';
+                        document.getElementById('responsableProyecto').value = '';
+                        cargarProyectos();
+                    } else {
+                        alert('Error al guardar el proyecto: ' + data.message);
+                    }
+                });
+            });
+        });
+        
+        function cargarProyectos() {
+            document.getElementById('cuerpoTabla').innerHTML = '<tr class="no-data"><td colspan="4">Cargando proyectos...</td></tr>';
+            
+            loadJSONP(`${scriptUrl}?action=obtenerProyectos`, function(data) {
+                const tbody = document.getElementById('cuerpoTabla');
+                tbody.innerHTML = '';
+                
+                if (data.success && data.proyectos && data.proyectos.length > 0) {
+                    data.proyectos.forEach(proyecto => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${proyecto.nup || ''}</td>
+                            <td>${proyecto.nombre || ''}</td>
+                            <td>${proyecto.responsable || ''}</td>
+                            <td>${proyecto.fecha || ''}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr class="no-data"><td colspan="4">No hay proyectos registrados</td></tr>';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
